@@ -1,4 +1,4 @@
-// Copyright 2017 Zack Guo <zack.y.guo@gmail.com>. All rights reserved.
+	// Copyright 2017 Zack Guo <zack.y.guo@gmail.com>. All rights reserved.
 // Use of this source code is governed by a MIT license that can
 // be found in the LICENSE file.
 
@@ -147,7 +147,7 @@ func (self *Plot) renderDot(buf *Buffer, drawArea image.Rectangle, maxVal float6
 	}
 }
 
-func (self *Plot) plotAxes(buf *Buffer, maxVal float64) {
+func (self *Plot) plotAxes(buf *Buffer, maxVal, minVal float64) {
 	// draw origin cell
 	buf.SetCell(
 		NewCell(BOTTOM_LEFT, NewStyle(ColorWhite)),
@@ -188,10 +188,12 @@ func (self *Plot) plotAxes(buf *Buffer, maxVal float64) {
 		x += (len(label) + xAxisLabelsGap) * self.HorizontalScale
 	}
 	// draw y axis labels
-	verticalScale := maxVal / float64(self.Inner.Dy()-xAxisLabelsHeight-1)
+	spread := maxVal - minVal
+	verticalScale := spread / float64(self.Inner.Dy()-xAxisLabelsHeight-1)
 	for i := 0; i*(yAxisLabelsGap+1) < self.Inner.Dy()-1; i++ {
+		yVal := minVal + float64(i)*verticalScale*(yAxisLabelsGap+1)
 		buf.SetString(
-			fmt.Sprintf("%.2f", float64(i)*verticalScale*(yAxisLabelsGap+1)),
+			fmt.Sprintf("%.2f", yVal),
 			NewStyle(ColorWhite),
 			image.Pt(self.Inner.Min.X, self.Inner.Max.Y-(i*(yAxisLabelsGap+1))-2),
 		)
@@ -206,8 +208,10 @@ func (self *Plot) Draw(buf *Buffer) {
 		maxVal, _ = GetMaxFloat64From2dSlice(self.Data)
 	}
 
+	minVal, _ := GetMinFloat64From2dSlice(self.Data)
+
 	if self.ShowAxes {
-		self.plotAxes(buf, maxVal)
+		self.plotAxes(buf, maxVal, minVal)
 	}
 
 	drawArea := self.Inner
