@@ -81,6 +81,9 @@ func (self *Plot) renderBraille(buf *Buffer, drawArea image.Rectangle, maxVal, m
 	canvas.Rectangle = drawArea
 
 	spread := maxVal - minVal
+	if spread == 0 {
+		spread = maxVal
+	}
 	switch self.PlotType {
 	case ScatterPlot:
 		for i, line := range self.Data {
@@ -121,6 +124,9 @@ func (self *Plot) renderBraille(buf *Buffer, drawArea image.Rectangle, maxVal, m
 
 func (self *Plot) renderDot(buf *Buffer, drawArea image.Rectangle, maxVal, minVal float64) {
 	spread := maxVal - minVal
+	if spread == 0 {
+		spread = maxVal
+	}
 	switch self.PlotType {
 	case ScatterPlot:
 		for i, line := range self.Data {
@@ -191,6 +197,9 @@ func (self *Plot) plotAxes(buf *Buffer, maxVal, minVal float64) {
 	}
 	// draw y axis labels
 	spread := maxVal - minVal
+	if spread == 0 {
+		spread = maxVal
+	}
 	verticalScale := spread / float64(self.Inner.Dy()-xAxisLabelsHeight-1)
 	for i := 0; i*(yAxisLabelsGap+1) < self.Inner.Dy()-1; i++ {
 		yVal := minVal + float64(i)*verticalScale*(yAxisLabelsGap+1)
