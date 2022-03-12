@@ -1,4 +1,4 @@
-	// Copyright 2017 Zack Guo <zack.y.guo@gmail.com>. All rights reserved.
+// Copyright 2017 Zack Guo <zack.y.guo@gmail.com>. All rights reserved.
 // Use of this source code is governed by a MIT license that can
 // be found in the LICENSE file.
 
@@ -7,6 +7,7 @@ package widgets
 import (
 	"fmt"
 	"image"
+	"math"
 
 	. "github.com/nlefler/termui/v3"
 )
@@ -19,6 +20,7 @@ type Plot struct {
 	Block
 
 	Data       [][]float64
+	DataLegend []rune
 	DataLabels []string
 	MaxVal     float64
 
@@ -31,11 +33,12 @@ type Plot struct {
 	PlotType        PlotType
 	HorizontalScale int
 	DrawDirection   DrawDirection // TODO
+
+	yAxisLabelsWidth int
 }
 
 const (
 	xAxisLabelsHeight = 1
-	yAxisLabelsWidth  = 4
 	xAxisLabelsGap    = 2
 	yAxisLabelsGap    = 1
 )
@@ -156,13 +159,50 @@ func (self *Plot) renderDot(buf *Buffer, drawArea image.Rectangle, maxVal, minVa
 }
 
 func (self *Plot) plotAxes(buf *Buffer, maxVal, minVal float64) {
+	// Calculate y axis labels
+	// draw y axis labels
+	spread := maxVal - minVal
+	if spread == 0 {
+		spread = maxVal
+	}
+	verticalScale := spread / float64(self.Inner.Dy()-xAxisLabelsHeight-1)
+	yAxisLabels := []string{}
+	yAxisLabelMaxLen := 0
+	for i := 0; i*(yAxisLabelsGap+1) < self.Inner.Dy()-1; i++ {
+		yVal := minVal + float64(i)*verticalScale*(yAxisLabelsGap+1)
+		label := fmt.Sprintf("%.2f", yVal)
+		yAxisLabels = append(yAxisLabels, label)
+		if len(label) > yAxisLabelMaxLen {
+			yAxisLabelMaxLen = len(label)
+		}
+	}
+
+	self.yAxisLabelsWidth = int(math.Max(float64(yAxisLabelMaxLen + 1), 4.0))
+
 	// draw origin cell
 	buf.SetCell(
 		NewCell(BOTTOM_LEFT, NewStyle(ColorWhite)),
-		image.Pt(self.Inner.Min.X+yAxisLabelsWidth, self.Inner.Max.Y-xAxisLabelsHeight-1),
+		image.Pt(self.Inner.Min.X+self.yAxisLabelsWidth, self.Inner.Max.Y-xAxisLabelsHeight-1),
 	)
+
+	// draw legend axis line
+	for i := self.yAxisLabelsWidth + 1; i < self.Inner.Dx(); i++ {
+		buf.SetCell(
+			NewCell(HORIZONTAL_DASH, NewStyle(ColorWhite)),
+			image.Pt(i+self.Inner.Min.X, self.Inner.Min.Y-xAxisLabelsHeight+1),
+		)
+	}
+	for j, val := range self.DataLegend {
+		if val == 0 { continue }
+		buf.SetCell(
+			NewCell(val, NewStyle(ColorWhite)),
+			image.Pt(yAxisLabelMaxLen+self.yAxisLabelsWidth+self.Inner.Min.X+(j*self.HorizontalScale)*2,
+				self.Inner.Min.Y-xAxisLabelsHeight+1),
+		)
+	}
+
 	// draw x axis line
-	for i := yAxisLabelsWidth + 1; i < self.Inner.Dx(); i++ {
+	for i := self.yAxisLabelsWidth + 1; i < self.Inner.Dx(); i++ {
 		buf.SetCell(
 			NewCell(HORIZONTAL_DASH, NewStyle(ColorWhite)),
 			image.Pt(i+self.Inner.Min.X, self.Inner.Max.Y-xAxisLabelsHeight-1),
@@ -172,7 +212,7 @@ func (self *Plot) plotAxes(buf *Buffer, maxVal, minVal float64) {
 	for i := 0; i < self.Inner.Dy()-xAxisLabelsHeight-1; i++ {
 		buf.SetCell(
 			NewCell(VERTICAL_DASH, NewStyle(ColorWhite)),
-			image.Pt(self.Inner.Min.X+yAxisLabelsWidth, i+self.Inner.Min.Y),
+			image.Pt(self.Inner.Min.X+self.yAxisLabelsWidth, i+self.Inner.Min.Y),
 		)
 	}
 	// draw x axis labels
@@ -180,13 +220,13 @@ func (self *Plot) plotAxes(buf *Buffer, maxVal, minVal float64) {
 	buf.SetString(
 		"0",
 		NewStyle(ColorWhite),
-		image.Pt(self.Inner.Min.X+yAxisLabelsWidth, self.Inner.Max.Y-1),
+		image.Pt(self.Inner.Min.X+self.yAxisLabelsWidth, self.Inner.Max.Y-1),
 	)
 	// draw rest
-	for x := self.Inner.Min.X + yAxisLabelsWidth + (xAxisLabelsGap)*self.HorizontalScale + 1; x < self.Inner.Max.X-1; {
+	for x := self.Inner.Min.X + self.yAxisLabelsWidth + (xAxisLabelsGap)*self.HorizontalScale + 1; x < self.Inner.Max.X-1; {
 		label := fmt.Sprintf(
 			"%d",
-			(x-(self.Inner.Min.X+yAxisLabelsWidth)-1)/(self.HorizontalScale)+1,
+			(x-(self.Inner.Min.X+self.yAxisLabelsWidth)-1)/(self.HorizontalScale)+1,
 		)
 		buf.SetString(
 			label,
@@ -196,11 +236,6 @@ func (self *Plot) plotAxes(buf *Buffer, maxVal, minVal float64) {
 		x += (len(label) + xAxisLabelsGap) * self.HorizontalScale
 	}
 	// draw y axis labels
-	spread := maxVal - minVal
-	if spread == 0 {
-		spread = maxVal
-	}
-	verticalScale := spread / float64(self.Inner.Dy()-xAxisLabelsHeight-1)
 	for i := 0; i*(yAxisLabelsGap+1) < self.Inner.Dy()-1; i++ {
 		yVal := minVal + float64(i)*verticalScale*(yAxisLabelsGap+1)
 		buf.SetString(
@@ -228,7 +263,7 @@ func (self *Plot) Draw(buf *Buffer) {
 	drawArea := self.Inner
 	if self.ShowAxes {
 		drawArea = image.Rect(
-			self.Inner.Min.X+yAxisLabelsWidth+1, self.Inner.Min.Y,
+			self.Inner.Min.X+self.yAxisLabelsWidth+1, self.Inner.Min.Y,
 			self.Inner.Max.X, self.Inner.Max.Y-xAxisLabelsHeight-1,
 		)
 	}
