@@ -167,17 +167,17 @@ func (self *Plot) plotAxes(buf *Buffer, maxVal, minVal float64) {
 	}
 	verticalScale := spread / float64(self.Inner.Dy()-xAxisLabelsHeight-1)
 	yAxisLabels := []string{}
-	yAxisLabelMaxLen := 0
+	self.yAxisLabelsWidth = 0
 	for i := 0; i*(yAxisLabelsGap+1) < self.Inner.Dy()-1; i++ {
 		yVal := minVal + float64(i)*verticalScale*(yAxisLabelsGap+1)
 		label := fmt.Sprintf("%.2f", yVal)
 		yAxisLabels = append(yAxisLabels, label)
-		if len(label) > yAxisLabelMaxLen {
-			yAxisLabelMaxLen = len(label)
+		if len(label) > self.yAxisLabelsWidth {
+			self.yAxisLabelsWidth = len(label)
 		}
 	}
 
-	self.yAxisLabelsWidth = int(math.Max(float64(yAxisLabelMaxLen + 1), 4.0))
+	self.yAxisLabelsWidth = int(math.Max(float64(self.yAxisLabelsWidth + 1), 4.0))
 
 	// draw origin cell
 	buf.SetCell(
@@ -196,7 +196,7 @@ func (self *Plot) plotAxes(buf *Buffer, maxVal, minVal float64) {
 		if val == 0 { continue }
 		buf.SetCell(
 			NewCell(val, NewStyle(ColorWhite)),
-			image.Pt(yAxisLabelMaxLen+self.yAxisLabelsWidth+self.Inner.Min.X+(j*self.HorizontalScale)*2,
+			image.Pt(self.yAxisLabelsWidth+self.Inner.Min.X+(j*self.HorizontalScale),
 				self.Inner.Min.Y-xAxisLabelsHeight+1),
 		)
 	}
